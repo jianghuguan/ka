@@ -1,8 +1,5 @@
 (function () {
-    // 终极测试：强制弹窗！如果连这个弹窗都没有，说明代码根本没被酒馆执行！
-    alert("【本地角色卡库】代码已被成功加载！\n如果你关掉这个弹窗后，还是看不到右边中间的红色悬浮球，请告诉我！");
-
-    console.log("%c[📦 本地角色卡库] 插件脚本开始执行！", "color: #00FF00; font-size: 16px; background: black; padding: 5px;");
+    console.log("%c[📦 本地角色卡库] 插件脚本开始执行！如果看到这条消息，说明插件已成功加载。", "color: #00FF00; font-size: 16px; background: black; padding: 5px;");
 
     // --- 界面模板与样式 ---
     const UI_STYLE = `
@@ -203,30 +200,31 @@
         if (document.getElementById('lcv-floating-btn')) return; // 防重复
         if (!document.body) return; // DOM还没加载完
 
+        console.log("[📦 本地角色卡库] 正在将悬浮球注入页面...");
+
         const fab = document.createElement('div');
         fab.id = 'lcv-floating-btn';
-        
-        // 移到屏幕中间偏右，变成醒目的红色发光按钮
+        // 强制最高层级，防止被酒馆任何界面遮挡
         fab.style.cssText = `
-            position: fixed !important;
-            top: 50% !important;     /* 屏幕中间 */
-            right: 50px !important;  /* 偏右一点 */
-            transform: translateY(-50%) !important;
-            width: 70px !important;
-            height: 70px !important;
-            background-color: #ff0000 !important; /* 纯红色 */
-            color: white !important;
-            border-radius: 50% !important;
-            display: flex !important;
-            justify-content: center !important;
-            align-items: center !important;
-            font-size: 35px !important;
-            box-shadow: 0 0 20px rgba(255, 0, 0, 1) !important; /* 红色发光 */
-            cursor: grab !important;
-            z-index: 2147483647 !important; /* 强制绝对置顶 */
-            user-select: none !important;
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 56px;
+            height: 56px;
+            background-color: #ff9800; /* 醒目的橙色 */
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 26px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+            cursor: grab;
+            z-index: 2147483647; /* 强制绝对置顶 */
+            user-select: none;
+            transition: transform 0.1s;
         `;
-        fab.innerHTML = '📦'; 
+        fab.innerHTML = '📦'; // 用 Emoji 代替图标，防止 font-awesome 加载失败
 
         // 拖拽逻辑
         let isDragging = false;
@@ -259,7 +257,6 @@
                 fab.style.top = `${newTop}px`;
                 fab.style.right = 'auto';
                 fab.style.bottom = 'auto';
-                fab.style.transform = 'none'; // 拖拽时取消Y轴居中转换
             }
         };
 
@@ -280,6 +277,7 @@
                 e.stopPropagation();
                 return; 
             }
+            // 点击打开画廊
             const fullHtml = UI_STYLE + MAIN_HTML;
             const popup = new window.SillyTavern.Popup(fullHtml, window.SillyTavern.POPUP_TYPE.DISPLAY, null, { large: true, wide: true });
             setTimeout(() => {
@@ -293,7 +291,7 @@
         });
 
         document.body.appendChild(fab);
-        console.log("[📦 本地角色卡库] 红色悬浮球已强制注入 DOM！");
+        console.log("[📦 本地角色卡库] 悬浮球注入成功！");
     }
 
     // 循环检测，确保 DOM 加载后绝对注入
