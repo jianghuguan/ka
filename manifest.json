@@ -2,9 +2,8 @@
     "name": "Local Card Vault",
     "display_name": "本地角色卡存储库",
     "description": "在浏览器本地存储角色卡，不占用酒馆空间，可随时一键导入。",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "author": "YourName",
     "main": "index.js",
-    "style": "style.css",
     "require": []
 }
