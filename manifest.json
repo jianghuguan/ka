@@ -1,12 +1,9 @@
 {
+    "name": "Local Card Vault",
     "display_name": "本地角色卡库 (悬浮版)",
-    "name": "LocalCardVault",
-    "version": "1.0.0",
-    "author": "Player",
-    "description": "提供一个在界面右下角悬浮的盒子图标，点击进入本地角色卡库。",
-    "js": [
-        "index.js"
-    ],
-    "css": [],
-    "optional": false
+    "version": "1.2.0",
+    "author": "YourName",
+    "description": "本地存储角色卡，全屏画廊，悬浮球快捷打开。",
+    "type": "extension",
+    "js": "index.js"
 }
