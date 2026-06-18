@@ -1,5 +1,5 @@
 (function () {
-    console.log("%c[📦 本地角色卡库] 插件脚本开始执行！如果看到这条消息，说明插件已成功加载。", "color: #00FF00; font-size: 16px; background: black; padding: 5px;");
+    console.log("[Local Card Vault] 插件脚本开始执行！");
 
     // --- 界面模板与样式 ---
     const UI_STYLE = `
@@ -8,7 +8,6 @@
         .lcv-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--SmartThemeBorderColor); padding-bottom: 10px; }
         .lcv-gallery { display: flex; flex-wrap: wrap; gap: 15px; overflow-y: auto; max-height: 70vh; padding-top: 10px; }
         .lcv-card { width: 120px; background: var(--SmartThemeBlurTintColor); border: 1px solid var(--SmartThemeBorderColor); border-radius: 8px; padding: 5px; cursor: pointer; transition: transform 0.2s; text-align: center; }
-        .lcv-card:hover { transform: scale(1.05); }
         .lcv-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 5px; }
         .lcv-card-name { margin-top: 5px; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .lcv-details-view { display: flex; gap: 20px; text-align: left; color: var(--SmartThemeBodyColor); flex-wrap: wrap; }
@@ -24,7 +23,7 @@
             <h2 style="margin:0;">📦 本地角色卡库</h2>
             <div class="lcv-actions">
                 <input type="file" id="lcv-upload-input" accept="image/png" multiple style="display: none;">
-                <button id="lcv-upload-btn" class="menu_button fa-solid fa-upload"> 上传角色卡</button>
+                <button id="lcv-upload-btn" class="menu_button">上传角色卡</button>
             </div>
         </div>
         <div id="lcv-gallery" class="lcv-gallery"></div>
@@ -38,8 +37,8 @@
             <h2 class="lcv-details-name" style="margin:0;"></h2>
             <p class="lcv-details-desc"></p>
             <div style="display: flex; gap: 10px; margin-top: auto;">
-                <button class="menu_button lcv-import-btn fa-solid fa-file-import" style="flex:1;"> 一键导入酒馆</button>
-                <button class="menu_button lcv-delete-btn fa-solid fa-trash" style="background: #8b0000; color:white;"> 删除</button>
+                <button class="menu_button lcv-import-btn" style="flex:1;"> 一键导入酒馆</button>
+                <button class="menu_button lcv-delete-btn" style="background: #8b0000; color:white;"> 删除</button>
             </div>
         </div>
     </div>
@@ -67,7 +66,7 @@
         const db = await initDB();
         return new Promise((resolve) => {
             const tx = db.transaction(STORE_NAME, 'readwrite');
-            tx.objectStore(STORE_NAME).put({ id, ...cardData });
+            tx.objectStore(STORE_NAME).put(Object.assign({ id: id }, cardData));
             tx.oncomplete = () => resolve();
         });
     }
@@ -127,7 +126,7 @@
         const cards = await getAllCards();
         
         if (cards.length === 0) {
-            gallery.innerHTML = '<div style="width:100%; text-align:center; padding: 30px; opacity: 0.6;">📂 存储库为空，请点击右上角上传。</div>';
+            gallery.innerHTML = '<div style="width:100%; text-align:center; padding: 30px; opacity: 0.6;">存储库为空，请点击右上角上传。</div>';
             return;
         }
         
@@ -137,7 +136,7 @@
 
             const cardDiv = document.createElement('div');
             cardDiv.className = 'lcv-card';
-            cardDiv.innerHTML = `<img src="${imgUrl}" loading="lazy"><div class="lcv-card-name">${card.name}</div>`;
+            cardDiv.innerHTML = `<img src="${imgUrl}"><div class="lcv-card-name">${card.name}</div>`;
             cardDiv.onclick = () => showCardDetails(card, imgUrl);
             gallery.appendChild(cardDiv);
         });
@@ -153,9 +152,9 @@
             
             content.querySelector('.lcv-import-btn').onclick = async () => {
                 if (window.TavernHelper && window.TavernHelper.importRawCharacter) {
-                    toastr.info(`正在导入...`);
-                    await window.TavernHelper.importRawCharacter(`${card.name}.png`, card.blob);
-                    toastr.success(`导入成功！`);
+                    toastr.info("正在导入...");
+                    await window.TavernHelper.importRawCharacter(card.name + ".png", card.blob);
+                    toastr.success("导入成功！");
                     popup.completeCancelled(); 
                 } else {
                     toastr.error("⚠️ 未检测到 TavernHelper！");
@@ -163,7 +162,7 @@
             };
 
             content.querySelector('.lcv-delete-btn').onclick = async () => {
-                if (confirm(`彻底删除 [${card.name}] 吗？`)) {
+                if (confirm("彻底删除 [" + card.name + "] 吗？")) {
                     await deleteCard(card.id);
                     renderGallery(); 
                     popup.completeCancelled(); 
@@ -177,7 +176,7 @@
         const files = event.target.files;
         if (!files.length) return;
 
-        toastr.info(`正在处理...`);
+        toastr.info("正在处理...");
         let successCount = 0;
         for (const file of files) {
             const cardData = await extractCardData(file);
@@ -189,7 +188,7 @@
         }
         
         if (successCount > 0) {
-            toastr.success(`保存了 ${successCount} 张卡片！`);
+            toastr.success("保存了 " + successCount + " 张卡片！");
             renderGallery();
         }
         event.target.value = ''; 
@@ -197,36 +196,16 @@
 
     // --- 强制生成悬浮球 ---
     function createFloatingButton() {
-        if (document.getElementById('lcv-floating-btn')) return; // 防重复
-        if (!document.body) return; // DOM还没加载完
+        if (document.getElementById('lcv-floating-btn')) return; 
+        if (!document.body) return; 
 
-        console.log("[📦 本地角色卡库] 正在将悬浮球注入页面...");
+        console.log("[Local Card Vault] 注入悬浮球...");
 
         const fab = document.createElement('div');
         fab.id = 'lcv-floating-btn';
-        // 强制最高层级，防止被酒馆任何界面遮挡
-        fab.style.cssText = `
-            position: fixed;
-            bottom: 100px;
-            right: 30px;
-            width: 56px;
-            height: 56px;
-            background-color: #ff9800; /* 醒目的橙色 */
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 26px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
-            cursor: grab;
-            z-index: 2147483647; /* 强制绝对置顶 */
-            user-select: none;
-            transition: transform 0.1s;
-        `;
-        fab.innerHTML = '📦'; // 用 Emoji 代替图标，防止 font-awesome 加载失败
+        fab.style.cssText = "position:fixed;bottom:100px;right:30px;width:56px;height:56px;background-color:#ff9800;color:white;border-radius:50%;display:flex;justify-content:center;align-items:center;font-size:26px;box-shadow:0 4px 15px rgba(0,0,0,0.8);cursor:grab;z-index:2147483647;user-select:none;transition:transform 0.1s;";
+        fab.innerHTML = '📦'; 
 
-        // 拖拽逻辑
         let isDragging = false;
         let startX, startY, initialLeft, initialTop;
 
@@ -238,7 +217,7 @@
             initialLeft = rect.left;
             initialTop = rect.top;
             fab.style.cursor = 'grabbing';
-            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mousemove', onMove, { passive: false });
             document.addEventListener('touchmove', onMove, { passive: false });
             document.addEventListener('mouseup', onUp);
             document.addEventListener('touchend', onUp);
@@ -247,14 +226,16 @@
         const onMove = (e) => {
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            if (Math.abs(clientX - startX) > 5 || Math.abs(clientY - startY) > 5) isDragging = true;
+            if (Math.abs(clientX - startX) > 5 || Math.abs(clientY - startY) > 5) {
+                isDragging = true;
+            }
 
             if (isDragging) {
-                e.preventDefault();
+                if (e.cancelable) e.preventDefault();
                 let newLeft = Math.max(0, Math.min(initialLeft + (clientX - startX), window.innerWidth - fab.offsetWidth));
                 let newTop = Math.max(0, Math.min(initialTop + (clientY - startY), window.innerHeight - fab.offsetHeight));
-                fab.style.left = `${newLeft}px`;
-                fab.style.top = `${newTop}px`;
+                fab.style.left = newLeft + 'px';
+                fab.style.top = newTop + 'px';
                 fab.style.right = 'auto';
                 fab.style.bottom = 'auto';
             }
@@ -277,7 +258,6 @@
                 e.stopPropagation();
                 return; 
             }
-            // 点击打开画廊
             const fullHtml = UI_STYLE + MAIN_HTML;
             const popup = new window.SillyTavern.Popup(fullHtml, window.SillyTavern.POPUP_TYPE.DISPLAY, null, { large: true, wide: true });
             setTimeout(() => {
@@ -291,10 +271,8 @@
         });
 
         document.body.appendChild(fab);
-        console.log("[📦 本地角色卡库] 悬浮球注入成功！");
     }
 
-    // 循环检测，确保 DOM 加载后绝对注入
     const injectInterval = setInterval(() => {
         if (document.body) {
             createFloatingButton();
