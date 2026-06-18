@@ -1,3 +1,49 @@
+// --- 界面模板与样式 (直接内置，彻底告别文件路径报错) ---
+const UI_STYLE = `
+<style>
+    #lcv-container { width: 100%; height: 100%; display: flex; flex-direction: column; gap: 10px; padding: 10px; color: var(--SmartThemeBodyColor); }
+    .lcv-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--SmartThemeBorderColor); padding-bottom: 10px; }
+    .lcv-gallery { display: flex; flex-wrap: wrap; gap: 15px; overflow-y: auto; max-height: 70vh; padding-top: 10px; }
+    .lcv-card { width: 120px; background: var(--SmartThemeBlurTintColor); border: 1px solid var(--SmartThemeBorderColor); border-radius: 8px; padding: 5px; cursor: pointer; transition: transform 0.2s; text-align: center; }
+    .lcv-card:hover { transform: scale(1.05); }
+    .lcv-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 5px; }
+    .lcv-card-name { margin-top: 5px; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lcv-details-view { display: flex; gap: 20px; text-align: left; color: var(--SmartThemeBodyColor); }
+    .lcv-details-img { width: 200px; height: 200px; object-fit: cover; border-radius: 10px; }
+    .lcv-details-info { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+    .lcv-details-desc { max-height: 300px; overflow-y: auto; white-space: pre-wrap; background: var(--SmartThemeDarkColor); padding: 10px; border-radius: 5px; font-size: 14px; }
+</style>
+`;
+
+const MAIN_HTML = `
+<div id="lcv-container">
+    <div class="lcv-header">
+        <h2 style="margin:0;">📦 本地角色卡存储库</h2>
+        <div class="lcv-actions">
+            <input type="file" id="lcv-upload-input" accept="image/png" multiple style="display: none;">
+            <button id="lcv-upload-btn" class="menu_button fa-solid fa-upload"> 上传角色卡</button>
+        </div>
+    </div>
+    <div id="lcv-gallery" class="lcv-gallery">
+        <!-- 画廊动态渲染 -->
+    </div>
+</div>
+`;
+
+const DETAILS_HTML = `
+<div class="lcv-details-view">
+    <img class="lcv-details-img" src="" alt="Avatar">
+    <div class="lcv-details-info">
+        <h2 class="lcv-details-name" style="margin:0;"></h2>
+        <p class="lcv-details-desc"></p>
+        <div style="display: flex; gap: 10px; margin-top: auto;">
+            <button class="menu_button lcv-import-btn fa-solid fa-file-import" style="flex:1;"> 一键导入酒馆</button>
+            <button class="menu_button lcv-delete-btn fa-solid fa-trash" style="background: #8b0000; color:white;"> 删除</button>
+        </div>
+    </div>
+</div>
+`;
+
 // --- IndexedDB 数据库封装 ---
 const DB_NAME = 'LocalCardVaultDB';
 const STORE_NAME = 'cards';
@@ -43,40 +89,36 @@ async function deleteCard(id) {
     });
 }
 
-// --- PNG 角色卡数据提取 (V2格式) ---
+// --- PNG 角色卡数据提取 ---
 async function extractCardData(blob) {
     return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = function (e) {
             const result = e.target.result;
-            // 简单正则提取 PNG tEXt 块中的 chara 内容 (标准 V2 角色卡特征)
             const match = result.match(/chara\0([A-Za-z0-9+/=]+)/);
             if (match && match[1]) {
                 try {
                     const decoded = new TextDecoder("utf-8").decode(Uint8Array.from(atob(match[1]), c => c.charCodeAt(0)));
                     const json = JSON.parse(decoded);
-                    resolve(json.data || json); // V2格式在 data 字段下
+                    resolve(json.data || json); 
                 } catch (err) {
-                    console.error("角色卡解析失败", err);
                     resolve(null);
                 }
             } else {
-                resolve(null); // 不是标准V2角色卡
+                resolve(null); 
             }
         };
-        // 以 BinaryString 读取以便正则匹配
         reader.readAsBinaryString(blob);
     });
 }
 
-// --- 界面与交互逻辑 ---
-let currentObjectUrls = []; // 用于记录生成的临时链接，防止内存泄漏
+// --- 逻辑与渲染 ---
+let currentObjectUrls = []; 
 
 async function renderGallery() {
     const gallery = document.getElementById('lcv-gallery');
     if (!gallery) return;
     
-    // 清理上一批生成的临时图片链接，释放内存
     currentObjectUrls.forEach(url => URL.revokeObjectURL(url));
     currentObjectUrls = [];
     gallery.innerHTML = '';
@@ -84,18 +126,16 @@ async function renderGallery() {
     const cards = await getAllCards();
     
     if (cards.length === 0) {
-        gallery.innerHTML = '<div style="width:100%; text-align:center; padding: 20px; opacity: 0.5;">暂无角色卡，请点击右上角上传。</div>';
+        gallery.innerHTML = '<div style="width:100%; text-align:center; padding: 30px; opacity: 0.6; font-size: 16px;">📂 存储库为空，请点击右上角上传 PNG 角色卡。</div>';
         return;
     }
     
     cards.forEach(card => {
-        // 直接从内存中为 Blob 生成一个极轻量级的本地直链
         const imgUrl = URL.createObjectURL(card.blob);
         currentObjectUrls.push(imgUrl); 
 
         const cardDiv = document.createElement('div');
         cardDiv.className = 'lcv-card';
-        // 使用 loading="lazy" 懒加载，画廊再大也不卡
         cardDiv.innerHTML = `
             <img src="${imgUrl}" alt="${card.name}" loading="lazy">
             <div class="lcv-card-name">${card.name}</div>
@@ -106,45 +146,41 @@ async function renderGallery() {
 }
 
 function showCardDetails(card, imgUrl) {
-    const template = document.getElementById('lcv-details-template').innerHTML;
+    const popup = new window.SillyTavern.Popup(DETAILS_HTML, window.SillyTavern.POPUP_TYPE.DISPLAY, null, { large: true });
     
-    // 使用 SillyTavern 原生弹窗
-    const popup = new window.SillyTavern.Popup(template, window.SillyTavern.POPUP_TYPE.DISPLAY, null, { large: true });
-    
-    // 填充数据
     setTimeout(() => {
         const content = popup.dlg.querySelector('.lcv-details-view');
         content.querySelector('.lcv-details-img').src = imgUrl;
         content.querySelector('.lcv-details-name').innerText = card.name;
         content.querySelector('.lcv-details-desc').innerText = card.description || '该角色卡无简介。';
         
-        // 【一键导入到酒馆】按钮事件
+        // 一键导入
         content.querySelector('.lcv-import-btn').onclick = async () => {
             try {
                 if (window.TavernHelper && window.TavernHelper.importRawCharacter) {
                     toastr.info(`正在导入 ${card.name}...`);
+                    // 核心：使用 TavernHelper API 实现免下载后台导入
                     await window.TavernHelper.importRawCharacter(`${card.name}.png`, card.blob);
-                    toastr.success(`角色卡 ${card.name} 导入成功！`);
-                    popup.completeCancelled(); // 关闭详情弹窗
+                    toastr.success(`🎉 角色卡 ${card.name} 导入成功！已加入酒馆列表。`);
+                    popup.completeCancelled(); 
                 } else {
-                    toastr.error("错误：需要安装并加载 TavernHelper 扩展才能使用免下载导入！");
+                    toastr.error("⚠️ 错误：未检测到 TavernHelper！请确保已安装酒馆助手。");
                 }
             } catch (err) {
                 toastr.error("导入失败: " + err);
-                console.error(err);
             }
         };
 
-        // 【删除】按钮事件
+        // 删除
         content.querySelector('.lcv-delete-btn').onclick = async () => {
-            if (confirm(`确定要从浏览器删除 ${card.name} 吗？\n（此操作不可逆）`)) {
+            if (confirm(`确定要彻底从浏览器删除 [${card.name}] 吗？`)) {
                 await deleteCard(card.id);
-                renderGallery(); // 重新渲染画廊
-                popup.completeCancelled(); // 关闭详情弹窗
-                toastr.success(`${card.name} 已被删除。`);
+                renderGallery(); 
+                popup.completeCancelled(); 
+                toastr.success(`已删除 ${card.name}`);
             }
         };
-    }, 100);
+    }, 50);
     
     popup.show();
 }
@@ -153,19 +189,17 @@ async function handleFileUpload(event) {
     const files = event.target.files;
     if (!files.length) return;
 
-    toastr.info(`正在处理 ${files.length} 张角色卡，请稍候...`);
+    toastr.info(`正在处理 ${files.length} 张卡片...`);
     
     let successCount = 0;
     for (const file of files) {
         const cardData = await extractCardData(file);
         if (!cardData) {
-            toastr.warning(`${file.name} 解析失败，可能不是标准的 V2 角色卡。`);
+            toastr.warning(`跳过 ${file.name}：不是标准的酒馆 V2 角色卡。`);
             continue;
         }
         
         const id = 'card_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-        
-        // 核心：仅保存原始 Blob 文件流，最大程度节省空间
         await saveCard(id, {
             name: cardData.name || "未命名",
             description: cardData.description || "",
@@ -175,49 +209,57 @@ async function handleFileUpload(event) {
     }
     
     if (successCount > 0) {
-        toastr.success(`${successCount} 张角色卡已安全保存到浏览器存储！`);
+        toastr.success(`成功保存 ${successCount} 张角色卡！`);
         renderGallery();
     }
-    event.target.value = ''; // 清空 input 允许重复上传相同文件
+    event.target.value = ''; 
 }
 
-// --- 插件初始化 ---
-jQuery(async () => {
-    // 1. 读取同目录下的 index.html 作为弹窗模板
-    let htmlContent = '';
-    try {
-        const response = await fetch(import.meta.url.replace('index.js', 'index.html'));
-        htmlContent = await response.text();
-    } catch (e) {
-        console.error("无法加载本地角色卡库界面的 HTML，请检查文件路径", e);
-        return;
-    }
+// --- 插件初始化挂载 ---
+function initExtension() {
+    // 检查是否已经挂载过，防重复
+    if (document.getElementById('lcv-extension-btn')) return;
 
-    // 2. 在酒馆顶部右侧添加一个按钮
-    const navBar = document.getElementById('top-bar-controls');
-    if (navBar) {
+    // 寻找酒馆的扩展菜单 (顶部的积木图标下拉菜单)
+    const extensionMenu = document.getElementById('extensionsMenu');
+    if (extensionMenu) {
+        // 创建入口按钮
         const btn = document.createElement('div');
-        btn.className = 'menu_button fa-solid fa-box-archive interactable';
-        btn.title = '本地角色卡存储库';
+        btn.id = 'lcv-extension-btn';
+        btn.className = 'list-group-item flex-container flexGapSm';
+        btn.title = '打开本地角色卡库';
+        btn.style.cursor = 'pointer';
+        btn.innerHTML = `
+            <div class="fa-solid fa-box-archive extensionsMenuExtensionButton"></div>
+            <div class="extensionsMenuExtensionName">本地角色卡库</div>
+        `;
         
         btn.onclick = () => {
-            // 点击打开主界面画廊弹窗
-            const popup = new window.SillyTavern.Popup(htmlContent, window.SillyTavern.POPUP_TYPE.DISPLAY, null, { large: true, wide: true });
+            // 打开画廊界面
+            const fullHtml = UI_STYLE + MAIN_HTML;
+            const popup = new window.SillyTavern.Popup(fullHtml, window.SillyTavern.POPUP_TYPE.DISPLAY, null, { large: true, wide: true });
             
-            // 绑定事件和渲染画廊
             setTimeout(() => {
                 const uploadBtn = document.getElementById('lcv-upload-btn');
                 const uploadInput = document.getElementById('lcv-upload-input');
-                
                 uploadBtn.onclick = () => uploadInput.click();
                 uploadInput.onchange = handleFileUpload;
-                
-                renderGallery(); // 渲染已有卡片
-            }, 100);
+                renderGallery(); 
+            }, 50);
             
             popup.show();
         };
-        // 插入到顶部栏（通常放在最前面）
-        navBar.prepend(btn);
+        
+        // 添加到扩展菜单的末尾
+        extensionMenu.appendChild(btn);
+        console.log("Local Card Vault (本地卡库) 扩展加载成功！");
     }
+}
+
+// 确保在 DOM 彻底准备好后挂载按钮
+jQuery(() => {
+    initExtension();
+    // 兼容部分慢加载的主题
+    setTimeout(initExtension, 1000);
+    setTimeout(initExtension, 3000);
 });
